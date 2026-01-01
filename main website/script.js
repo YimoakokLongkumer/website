@@ -256,6 +256,7 @@ function addToCart(productId) {
     
     // Update UI
     updateCartCount();
+    renderCartItems(); // Update cart display if open
     
     // Show notification
     showNotification(`${product.name} added to cart!`);
@@ -302,9 +303,16 @@ function checkout() {
         return;
     }
     
+    // Calculate total with discount
+    let subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    let discount = 0;
+    if (subtotal > 1000) {
+        discount = subtotal * 0.10; // 10% discount
+    }
+    const total = subtotal - discount;
+    
     // In a real application, this would connect to a payment gateway
     // For this demo, we'll just simulate a successful order
-    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     
     // Save order to "database" (localStorage for demo)
     const orders = JSON.parse(localStorage.getItem('pixelwick_orders')) || [];
@@ -312,6 +320,8 @@ function checkout() {
         id: Date.now(),
         date: new Date().toISOString(),
         items: [...cart],
+        subtotal: subtotal,
+        discount: discount,
         total: total
     };
     orders.push(newOrder);
@@ -340,11 +350,13 @@ function closeCart() {
 
 function renderCartItems() {
     const cartItems = document.getElementById('cartItems');
-    const cartTotal = document.getElementById('cartTotal');
     
     if (cart.length === 0) {
         cartItems.innerHTML = '<p class="empty-cart">Your cart is empty</p>';
-        cartTotal.textContent = '0.00';
+        // Reset totals when cart is empty
+        document.getElementById('subtotal').textContent = '0.00';
+        document.getElementById('discount').textContent = '0.00';
+        document.getElementById('total').textContent = '0.00';
         return;
     }
     
@@ -363,14 +375,33 @@ function renderCartItems() {
         </div>
     `).join('');
     
-    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    cartTotal.textContent = total.toFixed(2);
+    calculateTotal();
 }
 
 function updateCartCount() {
     const cartCount = document.querySelector('.cart-count');
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
     cartCount.textContent = totalItems;
+}
+
+function calculateTotal() {
+    let subtotal = 0;
+    cart.forEach(item => {
+        subtotal += item.price * item.quantity;
+    });
+    
+    // Apply 10% discount if total > 1000
+    let discount = 0;
+    if (subtotal > 1000) {
+        discount = subtotal * 0.10; // 10% discount
+    }
+    
+    let total = subtotal - discount;
+    
+    // Update display
+    document.getElementById('subtotal').textContent = subtotal.toFixed(2);
+    document.getElementById('discount').textContent = discount.toFixed(2);
+    document.getElementById('total').textContent = total.toFixed(2);
 }
 
 function saveCartToStorage() {
